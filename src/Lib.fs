@@ -4,9 +4,10 @@ namespace Sparse
 module Lib =
   open System
   open Parser
+  open Help
   open Util
 
-  type ArgParser<'T>() =
+  type ArgParser<'T>(name: string) =
     let argMap = buildArgMap typeof<'T> 
     let unique, required = buildUniqueAndRequired typeof<'T>
     member this.Parse tokens =
@@ -14,4 +15,5 @@ module Lib =
       if Result.isError res then res
       else 
         checkUniqueAndRequired unique required (Result.getOk res) 
-  
+    member this.Help =
+      buildHelpMessage name argMap unique required

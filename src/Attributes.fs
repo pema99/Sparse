@@ -25,3 +25,8 @@ type Hidden() =
 //A literal argument with no lexeme
 type NoLexeme() =
   inherit ArgumentAttribute()
+
+//Custom parameter name for help messages
+type ParamName(name: string) =
+  inherit ArgumentAttribute()
+  member this.Name = name

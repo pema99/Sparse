@@ -1,5 +1,6 @@
 src/Attributes.fs
 src/Util.fs
 src/Parser.fs
+src/Help.fs
 src/Lib.fs
 src/Program.fs
