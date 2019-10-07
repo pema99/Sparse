@@ -59,3 +59,33 @@ module internal Parser =
           if err |> Result.isError then
             yield err |> Result.getError ]  
     else Ok (List.map Result.getOk res)
+
+  let buildUniqueAndRequired (args: Type) =
+    let getRes pred = 
+      FSharpType.GetUnionCases args
+        |> Array.filter (fun case -> case.GetCustomAttributes() |> Array.exists pred)
+        |> List.ofArray
+    getRes (fun a -> a :? Unique), getRes (fun a -> a :? Required)
+
+  let checkUniqueAndRequired unique required args =
+    let check pred (coll: UnionCaseInfo list) =  
+      coll
+        |> List.map (fun target ->
+          target.Name,
+          args
+            |> pred (fun arg ->
+              (FSharpValue.GetUnionFields(arg, arg.GetType()) |> fst) = target))
+    let collRequired = check List.exists required
+    let collUnique = check (fun x lst -> List.filter x lst |> List.length <= 1) unique
+    let getRes format res =
+      if res |> List.exists (fun x -> not (snd x)) then
+        Error (res |> List.filter (fun x -> not (snd x)) |> List.map fst |> List.map format)
+      else
+        Ok(args)
+    let resRequired = getRes (sprintf "Missing required parameter '%s'") collRequired
+    let resUnique = getRes (sprintf "Multiple definition of unique parameter '%s'") collUnique
+    if Result.isError resRequired then resRequired
+    else if Result.isError resUnique then resUnique
+    else Ok(args)
+      
+    
