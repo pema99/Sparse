@@ -16,4 +16,4 @@ module Lib =
       else 
         checkUniqueAndRequired unique required (Result.getOk res) 
     member this.Help =
-      buildHelpMessage name argMap unique required
+      buildHelpMessage typeof<'T> name argMap unique required

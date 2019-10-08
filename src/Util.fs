@@ -28,6 +28,18 @@ module internal Util =
     | t when t = typeof<byte> -> parseByte literal
     | _ -> None
 
+  let defaultObject objectType =
+    match objectType with
+    | t when t = typeof<string> -> "" :> obj 
+    | t when t = typeof<int> -> 0 :> obj
+    | t when t = typeof<float> -> (float 0.0) :> obj
+    | t when t = typeof<double> -> (double 0.0) :> obj 
+    | t when t = typeof<bool> -> false :> obj
+    | t when t = typeof<char> -> ' ' :> obj
+    | t when t = typeof<uint32> -> (uint32 0) :> obj
+    | t when t = typeof<byte> -> (byte 0) :> obj
+    | _ -> failwith (sprintf "Unsupport type '%A'" objectType)
+
   type Result<'T, 'U> with
     static member isError result =
       match result with
@@ -51,3 +63,11 @@ module internal Util =
       match result with
       | Ok(_) -> None
       | Error(_) -> Some(result)
+
+  module List =     
+    let select (pred: 'T -> bool) (lst: 'T list) =
+      lst |> List.tryPick (fun x -> if pred x then Some(x) else None)
+
+  module Array =
+    let select (pred: 'T -> bool) (arr: 'T []) =
+      arr |> Array.tryPick (fun x -> if pred x then Some(x) else None)

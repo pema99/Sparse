@@ -10,6 +10,13 @@ type Arguments =
   | [<AltName("v")>] Verbose
   | [<Hidden>] Debug
 
+  member this.Usage =
+    match this with
+    | File(_) -> "Specify a specific file"
+    | Gravity(_) -> "Turn on gravity"
+    | Verbose -> "Make more verbose"
+    | Debug -> "Turn on debug mode"
+
 [<EntryPoint>]
 let main argv =
   let parser = new ArgParser<Arguments>("TestApp")
