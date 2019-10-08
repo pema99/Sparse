@@ -1,13 +1,13 @@
 namespace Sparse
 
-module internal Help =
+module internal Usage =
   open Microsoft.FSharp.Reflection
   open System.Collections.Generic
   open System
 
   open Util
 
-  let buildHelpMessage (kind: Type) (name: string) (argMap: Map<string, UnionCaseInfo>) unique required =
+  let buildUsageMessage (kind: Type) (name: string) (argMap: Map<string, UnionCaseInfo>) unique required =
     //Build dict arg -> string
     let argDict = new Dictionary<UnionCaseInfo, string list>()
     argMap 

@@ -38,7 +38,7 @@ module internal Parser =
       | Some(res), true -> Ok (FSharpValue.MakeUnion (argMap.[token], [| res |])), true
       | None, false -> Ok (FSharpValue.MakeUnion (argMap.[token], [||])), false
       | Some(res), false -> Error (sprintf "Unexpected parameter '%s' after '%s'" (res.ToString()) token), false
-      | None, true -> Error (sprintf "Missing parameter after '%s'" token), true
+      | None, true -> Error (sprintf "Missing or invalid parameter after '%s'" token), true
     else Error (sprintf "Invalid argument '%s'" token), false
 
   let parse argMap (tokens: string []) =    
