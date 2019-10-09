@@ -1,9 +1,9 @@
 # Sparse
-Shitty tool for making shitty CLI's
+Mediocre library for making mediocre CLI's.
 
 # Frequently answered questions
 #### Q1: What?
-#### A1: Tool for parsing CLI arguments by defining arguments as a discriminated union.
+#### A1: Library for parsing CLI arguments by defining arguments as a discriminated union.
 ---
 #### Q2: Why?
 #### A2: Boredom, personal need for a tool like this, unwillingness to use other peoples code. Also to learn more F# and more reflection magic.
@@ -12,13 +12,19 @@ Shitty tool for making shitty CLI's
 #### A3: Questionable reflection magic.
 ---
 #### Q4: How to use?
-#### A4: Check out the example (which has yet to be written).
+#### A4: Check out the example in example/Program.fs.
 ---
-#### Q5: Hasn't this already been done?
-#### A5: Yes.
+#### Q5: How to build?
+#### A5: Run build.sh, it will output a built dll to bin/sparse.dll. If for some reason you can't do that, look at the contents of build.sh and build manually with similar commands, I guess. 
 ---
-#### Q6: Why do all your projects and tools suck so much?
-#### A6: 	｡ﾟ･ (>﹏<) ･ﾟ｡
+#### Q6: Hasn't this already been done?
+#### A6: Yes.
+---
+#### Q7: Why do all your projects and tools suck so much?
+#### A7: 	｡ﾟ･ (>﹏<) ･ﾟ｡
+---
+#### Q8: Should I use this?
+#### A8: Probably not. There are better, more stable libraries out there. This is mainly for personal use and experimentation, although it definetely _does_ work.
 
 # And now, for the obligatory bottom-of-the-readme-meme
 ```
