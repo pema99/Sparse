@@ -11,7 +11,7 @@ module Lib =
     let argMap = buildArgMap typeof<'T> 
     let unique, required = buildUniqueAndRequired typeof<'T>
     member this.Parse tokens =
-      let res = parse argMap tokens
+      let res = parse<'T> argMap tokens
       if Result.isError res then res
       else 
         checkUniqueAndRequired unique required (Result.getOk res) 

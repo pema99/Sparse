@@ -41,7 +41,7 @@ module internal Parser =
       | None, true -> Error (sprintf "Missing or invalid parameter after '%s'" token), true
     else Error (sprintf "Invalid argument '%s'" token), false
 
-  let parse argMap (tokens: string []) =    
+  let parse<'T> argMap (tokens: string []) =    
     let rec parseCont (tokens: string list) =
       match tokens with
       | arg::param::tail -> 
@@ -58,7 +58,7 @@ module internal Parser =
         [ for err in res do
           if err |> Result.isError then
             yield err |> Result.getError ]  
-    else Ok (List.map Result.getOk res)
+    else Ok (res |> List.map Result.getOk |> List.map (fun x -> x :?> 'T))
 
   let buildUniqueAndRequired (args: Type) =
     let getRes pred = 
