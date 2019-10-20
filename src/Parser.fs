@@ -6,41 +6,49 @@ module internal Parser =
 
   open Util
 
-  let sugarLexeme (lexeme: string) =
+  //Add '-' or '--' to a lexeme depending on it's length
+  let addPrefix (lexeme: string) =
     match lexeme.Length with
     | 1 -> "-" + lexeme
     | _ -> "--" + lexeme
 
-  let augmentLexemes (arg: UnionCaseInfo) =
-    (sugarLexeme (arg.Name.ToLower()), arg) :: 
-    (arg.GetCustomAttributes() 
-      |> List.ofArray
-      |> List.filter (fun attr -> attr :? AltName)
-      |> List.map (fun attr -> sugarLexeme (attr :?> AltName).Name, arg))
+  //Build a mapping table between lexeme strings and UnionCaseInfo instances
+  let buildArgMap<'T> =
+    //Build a list of tables entries for the mapping table given a UnionCaseInfo
+    let buildTableEntries (arg: UnionCaseInfo) =
+      (addPrefix (arg.Name.ToLower()), arg) :: 
+      (arg.GetCustomAttributes()
+        |> List.ofArray
+        |> List.filter (fun attr -> attr :? AltName)
+        |> List.map (fun attr -> addPrefix (attr :?> AltName).Name, arg))
+    //Make entries for all union cases and build a map from the concatenated results
+    FSharpType.GetUnionCases typeof<'T>
+      |> Seq.collect buildTableEntries
+      |> Map.ofSeq
 
-  let buildArgMap (args: Type) =
-    FSharpType.GetUnionCases args 
-      |> List.ofArray
-      |> List.collect augmentLexemes
-      |> Map.ofList
-
+  //Given a mapping table, a token and optionally a parameter,
+  //construct a union case from the token and parameter using the mapping table.
+  //Return a tuple of the union case wrapped in a result and a boolean indicating
+  //whether the argument succesfully took a parameter.
   let buildArgument (argMap: Map<string, UnionCaseInfo>) token param =
     if argMap.ContainsKey token then
       let fieldTypes = argMap.[token].GetFields()
       let takesParam = fieldTypes.Length > 0
       let field =
         match param with
-        | Some(param) ->
-          if takesParam then parseToObject fieldTypes.[0].PropertyType param
-          else None
-        | None -> None
+        | Some(param) when takesParam -> tryParseToObject fieldTypes.[0].PropertyType param
+        | _ -> None
       match field, takesParam with
-      | Some(res), true -> Ok (FSharpValue.MakeUnion (argMap.[token], [| res |])), true
-      | None, false -> Ok (FSharpValue.MakeUnion (argMap.[token], [||])), false
+      | Some(res), true ->  Ok (FSharpValue.MakeUnion (argMap.[token], [| res |])), true
+      | None, false ->      Ok (FSharpValue.MakeUnion (argMap.[token], [||])), false
       | Some(res), false -> Error (sprintf "Unexpected parameter '%s' after '%s'" (res.ToString()) token), false
-      | None, true -> Error (sprintf "Missing or invalid parameter after '%s'" token), true
+      | None, true ->       Error (sprintf "Missing or invalid parameter after '%s'" token), true
     else Error (sprintf "Invalid argument '%s'" token), false
 
+  //Iterates a string array and attempts to parse arguments
+  //returns a Result containing either the a succesfully parsed
+  //list of union cases corresponding to arguments, or
+  //a list of strings containing errors messages.
   let parse<'T> argMap (tokens: string []) =    
     let rec parseCont (tokens: string list) =
       match tokens with
@@ -54,38 +62,63 @@ module internal Parser =
       | _ -> []
     let res = parseCont (List.ofArray tokens)
     if List.exists Result.isError res then
-      Error
-        [ for err in res do
-          if err |> Result.isError then
-            yield err |> Result.getError ]  
-    else Ok (res |> List.map Result.getOk |> List.map (fun x -> x :?> 'T))
+      res
+        |> List.filter Result.isError
+        |> List.map Result.getError
+        |> Error
+    else
+      res
+        |> List.map Result.getOk
+        |> List.map (fun x -> x :?> 'T)
+        |> Ok
 
-  let buildUniqueAndRequired (args: Type) =
-    let getRes pred = 
-      FSharpType.GetUnionCases args
-        |> Array.filter (fun case -> case.GetCustomAttributes() |> Array.exists pred)
-        |> List.ofArray
-    getRes (fun a -> a :? Unique), getRes (fun a -> a :? Required)
+  //Given the type of a union and the type of an attribute
+  //filter the union cases of the union to those containing
+  //the given attribute.
+  let filterArgumentsByAttribute<'T, 'U> =
+    FSharpType.GetUnionCases typeof<'T>
+      |> Array.filter (fun x ->
+        x.GetCustomAttributes()
+          |> Array.exists (fun y -> y :? 'U))
+      |> List.ofArray
 
-  let checkUniqueAndRequired unique required args =
-    let check pred (coll: UnionCaseInfo list) =  
-      coll
-        |> List.map (fun target ->
-          target.Name,
-          args
-            |> pred (fun arg ->
-              (FSharpValue.GetUnionFields(arg, arg.GetType()) |> fst) = target))
-    let collRequired = check List.exists required
-    let collUnique = check (fun x lst -> List.filter x lst |> List.length <= 1) unique
-    let getRes format res =
-      if res |> List.exists (fun x -> not (snd x)) then
-        Error (res |> List.filter (fun x -> not (snd x)) |> List.map fst |> List.map format)
-      else
-        Ok(args)
-    let resRequired = getRes (sprintf "Missing required parameter '%s'") collRequired
-    let resUnique = getRes (sprintf "Multiple definition of unique parameter '%s'") collUnique
-    if Result.isError resRequired then resRequired
-    else if Result.isError resUnique then resUnique
-    else Ok(args)
-      
-    
+  //Find certain arguments as specified but a list of UnionCaseInfo
+  //and make table of tuples where each tuple contains the arguments name
+  //as well as all found occurences of it.
+  let findArguments (targets: UnionCaseInfo list) args =
+    targets
+      |> List.map (fun target ->
+        target.Name.ToLower(),
+        args
+          |> List.filter (fun arg ->
+            (FSharpValue.GetUnionFields(arg, arg.GetType()) |> fst) = target))
+
+  //Given a predicate which takes a list of found arguments
+  //and returns a bool, as well as an string formatter for errors,
+  //a list of arguments to find and the list of parsed arguments itself,
+  //check if the predicate holds for and return a result accordingly.
+  let checkArgumentConstraint pred errorFormatter targets args =
+    let errors =
+      findArguments targets args
+        |> List.filter (snd >> pred)
+    if errors.Length > 0 then
+      errors
+        |> List.map (fst >> errorFormatter)
+        |> Error
+    else Ok args
+
+  //Checks for duplicate unique arguments
+  let checkUnique targets args =
+    checkArgumentConstraint
+      (fun x -> x |> List.length > 1)
+      (sprintf "Multiple occurences of unique argument '%s'")
+      targets
+      args
+
+  //Checks for missing required arguments
+  let checkRequired targets args =
+    checkArgumentConstraint
+      (fun x -> x |> List.length < 1)
+      (sprintf "Missing required argument '%s'")
+      targets
+      args

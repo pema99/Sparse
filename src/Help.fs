@@ -19,7 +19,7 @@ module internal Usage =
 
     //Get type metadata
     let methods = kind.GetMethods()
-    let helpPrinter = methods |> Array.select (fun x -> x.Name = "get_Usage")
+    let helpPrinter = methods |> Array.tryFind (fun x -> x.Name = "get_Usage")
     let mutable args = ""
     let mutable options = "\n\nOptions:\n"
 
@@ -33,7 +33,7 @@ module internal Usage =
         let param =
           if fields.Length > 0 then
             let paramName =
-              match attrs |> Array.select (fun x -> x :? ParamName) with
+              match attrs |> Array.tryFind (fun x -> x :? ParamName) with
               | Some(attr) -> (attr :?> ParamName).Name
               | None -> fields.[0].PropertyType.Name
             sprintf " <%s>" paramName

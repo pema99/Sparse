@@ -22,8 +22,8 @@ type Unique() =
 type Hidden() = 
   inherit ArgumentAttribute()
 
-//A literal argument with no lexeme
-type NoLexeme() =
+//Main command without any lexeme
+type MainCommand() =
   inherit ArgumentAttribute()
 
 //Custom parameter name for help messages
