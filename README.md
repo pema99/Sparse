@@ -12,7 +12,7 @@ Mediocre library for making mediocre CLI's.
 #### A3: Questionable reflection magic.
 ---
 #### Q4: How to use?
-#### A4: Check out the example in example/Program.fs.
+#### A4: Check out the example in example/Program.fs, or check out [the other mediocre software I am writing](https://github.com/pema99/quickmaff/blob/master/src/Main.fs) for a use case.
 ---
 #### Q5: How to build?
 #### A5: Run build.sh, it will output a built dll to bin/sparse.dll. If for some reason you can't do that, look at the contents of build.sh and build manually with similar commands, I guess. 
